@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스탑워치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --text: #f3effa;
+    --muted: rgba(243, 239, 250, 0.5);
+    --line: rgba(255, 255, 255, 0.1);
+    --logo: #f3effa;
+    --purple: #7823dc;
+    --purple-light: #a66bff;
+    --purple-dark: #4b1591;
+    --fast: #b98cff;
+    --slow: #ff7a9a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    font-family: "Archivo", "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+    padding: 16px;
+    position: relative;
+    overflow-x: hidden;
+    /* 차콜 배경 + 보라색 빛 + 가는 격자선 */
+    background-color: #16131c;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgba(120, 35, 220, 0.55), transparent 45%),
+      radial-gradient(circle at 85% 85%, rgba(120, 35, 220, 0.35), transparent 50%),
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: auto, auto, 48px 48px, 48px 48px;
+  }
+  /* 사선 보라색 띠 */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: -20%;
+    background: repeating-linear-gradient(
+      -35deg,
+      transparent 0 120px,
+      rgba(166, 107, 255, 0.07) 120px 124px
+    );
+    pointer-events: none;
+  }
+  /* 배경에 크게 깔린 워드마크 */
+  .bg-mark {
+    position: fixed;
+    left: 50%;
+    bottom: -0.18em;
+    transform: translateX(-50%);
+    font-size: 15vw;
+    font-weight: 900;
+    font-stretch: 125%;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.035);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+  }
+  .tagline {
+    position: fixed;
+    top: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    color: rgba(255, 255, 255, 0.45);
+    font-stretch: 125%;
+  }
+  /* 배경이 비쳐 보이는 반투명 유리 패널 */
+  .card {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    padding: 36px 24px 24px;
+    border-radius: 20px;
+    background: linear-gradient(160deg, rgba(120, 35, 220, 0.18), rgba(22, 19, 28, 0.35));
+    border: 1px solid rgba(166, 107, 255, 0.25);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .logo {
+    margin: 0 0 20px;
+    text-align: center;
+    font-size: clamp(30px, 10vw, 44px);
+    font-weight: 800;
+    font-stretch: 125%;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+  .logo span {
+    color: var(--logo);
+    transition: color 0.3s ease;
+  }
+  .logo span.on { color: var(--purple-light); }
+  .display {
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(40px, 13vw, 60px);
+    font-weight: 700;
+    font-stretch: 112%;
+    text-align: center;
+    margin-bottom: 28px;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+  }
+  .display .ms { color: var(--muted); font-size: 0.6em; transition: color 0.3s ease; }
+  /* 10초 단위가 된 1초 동안 보라색 */
+  .display.mark {
+    color: var(--purple-light);
+    text-shadow: 0 0 24px rgba(166, 107, 255, 0.6);
+  }
+  .display.mark .ms { color: rgba(166, 107, 255, 0.7); }
+  .buttons {
+    display: flex;
+    gap: 10px;
+  }
+  button {
+    flex: 1;
+    padding: 14px 0;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.97); }
+  button:focus-visible { outline: 2px solid var(--purple-light); outline-offset: 2px; }
+  button:disabled { opacity: 0.35; cursor: default; }
+  #startStop {
+    background: var(--purple);
+    border: 1px solid var(--purple);
+  }
+  #startStop:hover { background: #8a3cf0; }
+  #startStop.running {
+    background: var(--purple-dark);
+    border-color: var(--purple-light);
+  }
+  #lap {
+    background: rgba(166, 107, 255, 0.15);
+    border: 1px solid rgba(166, 107, 255, 0.5);
+  }
+  #lap:not(:disabled):hover { background: rgba(166, 107, 255, 0.28); }
+  #reset {
+    background: transparent;
+    border: 1px solid rgba(166, 107, 255, 0.35);
+    color: var(--purple-light);
+  }
+  #reset:not(:disabled):hover { background: rgba(166, 107, 255, 0.12); }
+  .laps {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .laps:empty { margin: 0; }
+  .laps li {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 4px;
+    border-top: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  .laps li span:first-child { color: var(--muted); }
+  .laps li.fast { color: var(--fast); }
+  .laps li.slow { color: var(--slow); }
+</style>
+</head>
+<body>
+  <div class="bg-mark" aria-hidden="true">KEARNEY</div>
+  <div class="tagline" aria-hidden="true">STOPWATCH</div>
+  <div class="card">
+    <h1 class="logo" id="logo" aria-label="KEARNEY"></h1>
+    <div class="display" id="display">00:00.<span class="ms">00</span></div>
+    <div class="buttons">
+      <button id="startStop">시작</button>
+      <button id="lap" disabled>랩</button>
+      <button id="reset" disabled>리셋</button>
+    </div>
+    <ul class="laps" id="laps"></ul>
+  </div>
+
+<script>
+  const display = document.getElementById('display');
+  const startStopBtn = document.getElementById('startStop');
+  const lapBtn = document.getElementById('lap');
+  const resetBtn = document.getElementById('reset');
+  const lapsList = document.getElementById('laps');
+
+  let running = false;
+  let startTime = 0;   // 현재 구간 시작 시각
+  let elapsed = 0;     // 정지 전까지 누적 시간
+  let lastLapTotal = 0;
+  let laps = [];
+  let rafId = null;
+
+  function format(ms) {
+    const totalCs = Math.floor(ms / 10);
+    const cs = totalCs % 100;
+    const totalSec = Math.floor(totalCs / 100);
+    const s = totalSec % 60;
+    const m = Math.floor(totalSec / 60) % 60;
+    const h = Math.floor(totalSec / 3600);
+    const pad = n => String(n).padStart(2, '0');
+    const main = (h > 0 ? h + ':' : '') + pad(m) + ':' + pad(s);
+    return { main, cs: pad(cs) };
+  }
+
+  function current() {
+    return running ? elapsed + (performance.now() - startTime) : elapsed;
+  }
+
+  // 로고 글자: 1초마다 한 글자씩 보라색, 모두 바뀌면 다음 초에 다시 처음부터
+  const logoLetters = [...'KEARNEY'].map(ch => {
+    const span = document.createElement('span');
+    span.textContent = ch;
+    document.getElementById('logo').appendChild(span);
+    return span;
+  });
+
+  function renderLogo(ms) {
+    const lit = Math.floor(ms / 1000) % (logoLetters.length + 1);
+    logoLetters.forEach((span, i) => span.classList.toggle('on', i < lit));
+  }
+
+  function render() {
+    const ms = current();
+    const t = format(ms);
+    display.innerHTML = `${t.main}.<span class="ms">${t.cs}</span>`;
+    const sec = Math.floor(ms / 1000);
+    display.classList.toggle('mark', sec > 0 && sec % 10 === 0);
+    renderLogo(ms);
+  }
+
+  function tick() {
+    render();
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startStop() {
+    if (running) {
+      elapsed += performance.now() - startTime;
+      running = false;
+      cancelAnimationFrame(rafId);
+      render();
+    } else {
+      startTime = performance.now();
+      running = true;
+      tick();
+    }
+    updateButtons();
+  }
+
+  function lap() {
+    if (!running) return;
+    const total = current();
+    laps.unshift(total - lastLapTotal);
+    lastLapTotal = total;
+    renderLaps();
+  }
+
+  function reset() {
+    if (running) {
+      running = false;
+      cancelAnimationFrame(rafId);
+    }
+    elapsed = 0;
+    lastLapTotal = 0;
+    laps = [];
+    renderLaps();
+    render();
+    updateButtons();
+  }
+
+  function renderLaps() {
+    lapsList.innerHTML = '';
+    const min = Math.min(...laps), max = Math.max(...laps);
+    laps.forEach((lap, i) => {
+      const li = document.createElement('li');
+      if (laps.length > 1) {
+        if (lap === min) li.className = 'fast';
+        else if (lap === max) li.className = 'slow';
+      }
+      const t = format(lap);
+      li.innerHTML = `<span>랩 ${laps.length - i}</span><span>${t.main}.${t.cs}</span>`;
+      lapsList.appendChild(li);
+    });
+  }
+
+  function updateButtons() {
+    startStopBtn.textContent = running ? '정지' : '시작';
+    startStopBtn.classList.toggle('running', running);
+    lapBtn.disabled = !running;
+    resetBtn.disabled = !running && elapsed === 0;
+  }
+
+  startStopBtn.addEventListener('click', startStop);
+  lapBtn.addEventListener('click', lap);
+  resetBtn.addEventListener('click', reset);
+
+  // 버튼에 포커스가 남아 있으면 Space가 클릭까지 일으켜 두 번 토글되므로 포커스를 해제
+  [startStopBtn, lapBtn, resetBtn].forEach(btn =>
+    btn.addEventListener('mouseup', () => btn.blur()));
+  document.addEventListener('keyup', e => {
+    if (e.code === 'Space') e.preventDefault();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      if (!e.repeat) startStop();
+    }
+    else if (e.key === 'l' || e.key === 'L') lap();
+    else if (e.key === 'r' || e.key === 'R') reset();
+  });
+</script>
+</body>
+</html>
